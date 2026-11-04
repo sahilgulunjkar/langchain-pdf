@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+secrets.toml
+.streamlit/secrets.toml
+
+# Vector stores & local index storage
+faiss_index/
+chroma_db/
+vectorstore/
+
+# Streamlit runtime & cache
+.streamlit/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & databases
+*.log
+*.sqlite3
+*.db
+
+# IDEs and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
