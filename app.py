@@ -1,8 +1,13 @@
 from PyPDF2 import PdfReader
 import streamlit as st
+import os
 
 from dotenv import load_dotenv
 load_dotenv()
+
+# Use Streamlit Secrets when deployed
+if not os.getenv("GOOGLE_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
@@ -31,12 +36,13 @@ def get_text_chunks(raw_text):
         chunk_overlap=200,
         length_function=len
     )
-    chunks = text_splitter.split_text(raw_text)
-    return chunks
+    return text_splitter.split_text(raw_text)
 
 
 def get_vectorstore(text_chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/gemini-embedding-001"
+    )
     vectorstore = FAISS.from_texts(
         texts=text_chunks,
         embedding=embeddings
@@ -45,9 +51,13 @@ def get_vectorstore(text_chunks):
 
 
 def get_conversation_chain(vectorstore):
-    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", temperature=0.5)
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-3.5-flash",
+        temperature=0.5
+    )
+
     memory = ConversationBufferMemory(
-        memory_key='chat_history',
+        memory_key="chat_history",
         return_messages=True
     )
 
@@ -97,6 +107,7 @@ def main():
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -104,38 +115,45 @@ def main():
 
     with st.sidebar:
         st.subheader("Your document")
-        pdf_docs = st.file_uploader("Upload your PDFs here and click on Process", accept_multiple_files=True)
+
+        pdf_docs = st.file_uploader(
+            "Upload your PDFs here and click on Process",
+            accept_multiple_files=True,
+            type=["pdf"]
+        )
 
         if st.button("Process"):
-            with st.spinner("Processing..."):
-                # get pdf text
-                raw_text = get_pdf_text(pdf_docs)
+            if not pdf_docs:
+                st.warning("Please upload at least one PDF.")
+            else:
+                with st.spinner("Processing..."):
+                    raw_text = get_pdf_text(pdf_docs)
 
-                # get the text chunks
-                text_chunks = get_text_chunks(raw_text)
+                    if not raw_text.strip():
+                        st.error("No readable text found in PDFs.")
+                    else:
+                        text_chunks = get_text_chunks(raw_text)
 
-                # create vector store
-                vectorstore = get_vectorstore(text_chunks)
+                        vectorstore = get_vectorstore(text_chunks)
 
-                # create conversation chain
-                # session state to avoid re-initialize by streamlit
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                        st.session_state.conversation = (
+                            get_conversation_chain(vectorstore)
+                        )
 
-                st.session_state.messages = []
-                st.success("Processing complete!")
+                        st.session_state.messages = []
+                        st.success("Processing complete!")
 
-
-    # Display previous messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
 
-    # Ask question
-    user_question = st.chat_input("Ask about your documents...")
+    user_question = st.chat_input(
+        "Ask about your documents..."
+    )
 
     if user_question:
         handle_user_input(user_question)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
